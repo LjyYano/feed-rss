@@ -1,0 +1,4 @@
+# slug,bizid
+# slug 是你起的别名，bizid 是公众号的 __biz 参数
+
+深思圈,Mzg3NDc2MjQxMg==
