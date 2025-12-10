@@ -1,4 +1,4 @@
 # slug,bizid
-# slug 是别名（公众号的中文名），bizid 是公众号的 __biz 参数
+# slug 是别名（推荐用拼音/英文），bizid 是公众号的 __biz 参数
 
-深思圈,Mzg3NDc2MjQxMg==
+shensi,Mzg3NDc2MjQxMg==
