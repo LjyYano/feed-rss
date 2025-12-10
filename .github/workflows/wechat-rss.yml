@@ -92,13 +92,18 @@ jobs:
 
       - name: Commit and push changes
         run: |
+          set -e
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add docs
 
+          # 如果没有任何改动，直接跳过
           if git diff --cached --quiet; then
             echo "No changes to commit."
-          else
-            git commit -m "Update WeChat RSS feeds $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "Nothing to commit"
-            git pus
+            exit 0
+          fi
+
+          git commit -m "Update WeChat RSS feeds" || echo "Nothing to commit"
+          git push
