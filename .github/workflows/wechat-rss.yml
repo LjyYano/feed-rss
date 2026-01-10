@@ -55,7 +55,7 @@ jobs:
             fi
 
             echo "Fetching slug='$slug' bizid='$bizid' ..."
-            curl -sS "http://127.0.0.1:1200/wechat/mp/$bizid" \
+            curl -sS "http://127.0.0.1:1200/wechat/mp/homepage/$bizid/4" \
               -o "docs/feeds/${slug}.xml"
 
             if [ ! -s "docs/feeds/${slug}.xml" ]; then
