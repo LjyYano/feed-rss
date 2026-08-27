@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '0 3 * * *'   # 每天 UTC 3 点
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'wechat_feeds.txt'
+      - '.github/workflows/wechat-rss.yml'
 
 permissions:
   contents: write
@@ -119,6 +123,7 @@ jobs:
           } > "$OPML_FILE"
 
       - name: Commit and push changes
+        if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
 
