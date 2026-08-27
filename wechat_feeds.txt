@@ -2,3 +2,5 @@
 # source_url 是公开可访问的 RSS/Atom 地址
 
 shensi,https://wechat2rss.bestblogs.dev/feed/3e6fcb56a39b2e18f1036113655d4ff8fe726b62.xml
+youyouluming,https://wechat2rss.bestblogs.dev/feed/fa89f27259f903b92f5f133140dd3f641110f9fd.xml
+zhangbeihai,https://rsshub.app/wechat/sogou/zengyuanweilai
