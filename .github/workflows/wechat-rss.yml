@@ -12,73 +12,87 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      WECHAT_COOKIE: ${{ secrets.WECHAT_COOKIE }}
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Show wechat_feeds.txt for debug
-        run: |
-          echo "==== wechat_feeds.txt ===="
-          cat wechat_feeds.txt || echo "wechat_feeds.txt not found"
-
-      - name: Create docs/feeds directory
-        run: |
-          mkdir -p docs/feeds
-
-      - name: Start RSSHub with Docker
-        run: |
-          docker run -d --name rsshub -p 1200:1200 \
-            -e NODE_ENV=production \
-            -e WECHAT_COOKIE="${WECHAT_COOKIE}" \
-            diygod/rsshub:chromium-bundled
-          sleep 20
-
       - name: Fetch WeChat feeds
         run: |
-          set -e
+          set -euo pipefail
+
           if [ ! -f wechat_feeds.txt ]; then
             echo "ERROR: wechat_feeds.txt not found in repo root."
             exit 1
           fi
 
+          mkdir -p docs/feeds
           echo "==== Start fetching feeds ===="
-          while IFS=',' read -r slug bizid; do
-            # 去掉前后空白
+
+          while IFS=',' read -r slug source_url; do
             slug="$(echo "$slug" | xargs)"
-            bizid="$(echo "$bizid" | xargs)"
+            source_url="$(echo "$source_url" | xargs)"
 
             if [ -z "$slug" ] || [[ "$slug" =~ ^# ]]; then
               continue
             fi
 
-            echo "Fetching slug='$slug' bizid='$bizid' ..."
-            curl -sS "http://127.0.0.1:1200/wechat/mp/$bizid" \
-              -o "docs/feeds/${slug}.xml"
-
-            if [ ! -s "docs/feeds/${slug}.xml" ]; then
-              echo "WARNING: docs/feeds/${slug}.xml is empty!"
+            if [ -z "$source_url" ]; then
+              echo "ERROR: source URL is missing for '$slug'."
+              exit 1
             fi
+
+            case "$source_url" in
+              http://*|https://*) ;;
+              *)
+                echo "ERROR: invalid source URL for '$slug': $source_url"
+                exit 1
+                ;;
+            esac
+
+            target="docs/feeds/${slug}.xml"
+            temp="${target}.tmp"
+
+            echo "Fetching '$slug' from '$source_url' ..."
+            rm -f "$temp"
+
+            curl -fL --retry 3 --retry-all-errors \
+              --connect-timeout 10 --max-time 120 \
+              -sS "$source_url" -o "$temp"
+
+            if [ ! -s "$temp" ]; then
+              echo "ERROR: fetched feed for '$slug' is empty."
+              rm -f "$temp"
+              exit 1
+            fi
+
+            if ! grep -Eq '<rss([[:space:]>])|<feed([[:space:]>])' "$temp"; then
+              echo "ERROR: fetched content for '$slug' is not RSS/Atom."
+              head -c 500 "$temp" || true
+              echo
+              rm -f "$temp"
+              exit 1
+            fi
+
+            if ! grep -Eq '<item([[:space:]>])|<entry([[:space:]>])' "$temp"; then
+              echo "ERROR: fetched feed for '$slug' contains no entries."
+              rm -f "$temp"
+              exit 1
+            fi
+
+            mv "$temp" "$target"
+            echo "Updated $target"
           done < wechat_feeds.txt
 
           echo "==== files in docs/feeds ===="
-          ls -l docs/feeds || echo "no files"
-
-      - name: Stop RSSHub
-        if: always()
-        run: |
-          docker rm -f rsshub || true
+          ls -lh docs/feeds
 
       - name: Generate OPML
         run: |
-          set -e
+          set -euo pipefail
+
           REPO_NAME=$(basename "$GITHUB_REPOSITORY")
           BASE_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}"
           OPML_FILE="docs/wechat.opml"
-
-          echo "Generating OPML at $OPML_FILE"
 
           {
             echo '<?xml version="1.0" encoding="UTF-8"?>'
@@ -89,9 +103,8 @@ jobs:
             echo '  </head>'
             echo '  <body>'
 
-            while IFS=',' read -r slug bizid; do
+            while IFS=',' read -r slug source_url; do
               slug="$(echo "$slug" | xargs)"
-              bizid="$(echo "$bizid" | xargs)"
 
               if [ -z "$slug" ] || [[ "$slug" =~ ^# ]]; then
                 continue
@@ -105,12 +118,9 @@ jobs:
             echo '</opml>'
           } > "$OPML_FILE"
 
-          echo "==== wechat.opml generated ===="
-          cat "$OPML_FILE"
-
       - name: Commit and push changes
         run: |
-          set -e
+          set -euo pipefail
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -122,5 +132,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Update WeChat RSS feeds" || echo "Nothing to commit"
+          git commit -m "Update WeChat RSS feeds"
           git push
