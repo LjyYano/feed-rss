@@ -61,9 +61,10 @@ jobs:
           mkdir -p docs/feeds
           echo "==== Start fetching feeds ===="
 
-          while IFS=',' read -r slug source_url; do
+          while IFS=',' read -r slug source_url author_filter; do
             slug="$(echo "$slug" | xargs)"
             source_url="$(echo "$source_url" | xargs)"
+            author_filter="$(echo "${author_filter:-}" | xargs)"
 
             if [ -z "$slug" ] || [[ "$slug" =~ ^# ]]; then
               continue
@@ -115,6 +116,36 @@ jobs:
               exit 1
             fi
 
+            if [ -n "$author_filter" ]; then
+              python3 - "$temp" "$author_filter" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          path, expected_author = sys.argv[1], sys.argv[2]
+          ET.register_namespace('atom', 'http://www.w3.org/2005/Atom')
+          tree = ET.parse(path)
+          root = tree.getroot()
+          channel = root.find('channel')
+          if channel is None:
+              raise SystemExit('ERROR: author filtering currently requires RSS 2.0')
+
+          items = channel.findall('item')
+          matched = 0
+          for item in items:
+              author = (item.findtext('author') or '').strip()
+              if author == expected_author:
+                  matched += 1
+              else:
+                  channel.remove(item)
+
+          if matched == 0:
+              raise SystemExit(f"ERROR: no entries matched author '{expected_author}'")
+
+          tree.write(path, encoding='utf-8', xml_declaration=True)
+          print(f"Kept {matched}/{len(items)} entries for author '{expected_author}'")
+          PY
+            fi
+
             mv "$temp" "$target"
             echo "Updated $target"
           done < wechat_feeds.txt
@@ -143,7 +174,7 @@ jobs:
             echo '  </head>'
             echo '  <body>'
 
-            while IFS=',' read -r slug source_url; do
+            while IFS=',' read -r slug source_url author_filter; do
               slug="$(echo "$slug" | xargs)"
 
               if [ -z "$slug" ] || [[ "$slug" =~ ^# ]]; then
