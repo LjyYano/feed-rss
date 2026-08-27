@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '0 3 * * *'   # 每天 UTC 3 点
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'wechat_feeds.txt'
+      - '.github/workflows/wechat-rss.yml'
   pull_request:
     paths:
       - 'wechat_feeds.txt'
