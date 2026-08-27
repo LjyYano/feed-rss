@@ -2,9 +2,11 @@
 <opml version="2.0">
   <head>
     <title>WeChat Subscriptions</title>
-    <dateCreated>2026-08-27T07:36:09Z</dateCreated>
+    <dateCreated>2026-08-27T10:01:06Z</dateCreated>
   </head>
   <body>
     <outline text="shensi" title="shensi" type="rss" xmlUrl="https://LjyYano.github.io/feed-rss/feeds/shensi.xml" />
+    <outline text="youyouluming" title="youyouluming" type="rss" xmlUrl="https://LjyYano.github.io/feed-rss/feeds/youyouluming.xml" />
+    <outline text="zhangbeihai" title="zhangbeihai" type="rss" xmlUrl="https://LjyYano.github.io/feed-rss/feeds/zhangbeihai.xml" />
   </body>
 </opml>
