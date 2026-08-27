@@ -26,6 +26,29 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Start local RSSHub if needed
+        run: |
+          set -euo pipefail
+
+          if ! grep -Eq '^[^#][^,]*,rsshub-local:' wechat_feeds.txt; then
+            echo "No local RSSHub source configured."
+            exit 0
+          fi
+
+          docker run -d --name rsshub -p 1200:1200 diygod/rsshub
+
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 2 http://127.0.0.1:1200/ >/dev/null; then
+              echo "RSSHub is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs rsshub || true
+          echo "ERROR: RSSHub failed to start."
+          exit 1
+
       - name: Fetch WeChat feeds
         run: |
           set -euo pipefail
@@ -52,6 +75,9 @@ jobs:
             fi
 
             case "$source_url" in
+              rsshub-local:/*)
+                source_url="http://127.0.0.1:1200${source_url#rsshub-local:}"
+                ;;
               http://*|https://*) ;;
               *)
                 echo "ERROR: invalid source URL for '$slug': $source_url"
@@ -95,6 +121,10 @@ jobs:
 
           echo "==== files in docs/feeds ===="
           ls -lh docs/feeds
+
+      - name: Stop local RSSHub
+        if: always()
+        run: docker rm -f rsshub >/dev/null 2>&1 || true
 
       - name: Generate OPML
         run: |
