@@ -1,4 +1,4 @@
-# slug,bizid
-# slug 是别名（推荐用拼音/英文），bizid 是公众号的 __biz 参数
+# slug,source_url
+# source_url 是公开可访问的 RSS/Atom 地址
 
-shensi,Mzg3NDc2MjQxMg==
+shensi,https://wechat2rss.bestblogs.dev/feed/3e6fcb56a39b2e18f1036113655d4ff8fe726b62.xml
